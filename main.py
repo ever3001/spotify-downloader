@@ -6,8 +6,9 @@ from yt_dlp import YoutubeDL
 
 from time import sleep
 from random import uniform
+from loguru import logger
+from pathlib import Path
 
-DOWNLOAD_PATH = "./downloads/"  # ends with "/"
 client = None
 
 
@@ -82,25 +83,27 @@ def get_song_urls(playlist_info: list[PlaylistInfo]) -> list[str]:
     urls = []
 
     for song_info in playlist_info:
-        print(f"Getting url for {song_info['title']}")
+        logger.info(f"Getting url for {song_info['title']}")
         url, title = get_song_url(song_info)
         urls.append(url)
-        print(f"{title} ({url})")
+        logger.debug(f"{title} ({url})")
         sleep(uniform(1, 3))
 
     return urls
 
 
-def download_from_urls(urls: list[str]) -> None:
+def download_from_urls(urls: list[str], download_path: Path) -> None:
     """Downloads list of songs with yt-dlp"""
-
+    
+    if not download_path.exists():
+        download_path.mkdir(parents=True)
     # options generated from https://github.com/yt-dlp/yt-dlp/blob/master/devscripts/cli_to_api.py  # noqa: E501
     options = {"extract_flat": "discard_in_playlist",
                "final_ext": "m4a",
                "format": "bestaudio/best",
                "fragment_retries": 10,
                "ignoreerrors": "only_download",
-               "outtmpl": {"default": f"{DOWNLOAD_PATH}%(title)s.%(ext)s"},
+               "outtmpl": {"default": f"{download_path}/%(title)s.%(ext)s"},
                "postprocessors": [{"key": "FFmpegExtractAudio",
                                    "nopostoverwrites": False,
                                    "preferredcodec": "m4a",
@@ -112,6 +115,7 @@ def download_from_urls(urls: list[str]) -> None:
                                   {"key": "FFmpegConcat",
                                    "only_multi_video": True,
                                    "when": "playlist"}],
+               "logger": logger,
                "retries": 10}
 
     # downloads stream with highest bitrate, then save them in m4a format
@@ -123,8 +127,3 @@ def main(playlist_id: str):
     playlist_info = get_playlist_info(playlist_id)
     download_urls = get_song_urls(playlist_info)
     download_from_urls(download_urls)
-
-
-if __name__ == "__main__":
-    url = "https://open.spotify.com/playlist/2LE8ZObOZOqjsGrR6QFXwu?si=9b4a5deb005148e1"  # noqa: E501
-    main(url)  # test
