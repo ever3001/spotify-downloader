@@ -1,56 +1,50 @@
-__version__ = "1.0.3"
-__author__ = "Cha @github.com/invzfnc"
+"""CLI Module for Spotify Playlist Downloader"""
 
-import sys
-import argparse
-import traceback
+from __future__ import annotations
 
-from main import main
+import typer
+from loguru import logger
+from typing_extensions import Annotated
+from typing import Optional
+from importlib.metadata import version
+
+from main import main as spotify_dl_main
+
+app = typer.Typer()
+
+def version_callback(value: bool):
+    if value:
+        typer.echo(f"{version('spotify-dl')}")
+        raise typer.Exit()
 
 
-def parse_arguments() -> argparse.Namespace:
-    """Parses command line arguments and returns them."""
-
-    parser = argparse.ArgumentParser(
-        description="Download songs from Spotify playlist"
-    )
-
-    parser.add_argument(
-        "playlist_url",
-        help="spotify playlist URL or ID"
-    )
-
-    parser.add_argument(
-        "-o", "--output-dir",
-        default="./downloads/",
-        help="output directory for downloading songs (default: ./downloads)"
-    )
-
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=f"{__version__}",
-        help="show version number and exit"
-    )
-
-    return parser.parse_args()
+@app.command()
+def main(
+    playlist_url: str = typer.Argument(..., help="Spotify playlist URL or ID"),
+    output_dir: str = typer.Option(
+        "./downloads/",
+        "--output-dir",
+        "-o",
+        help="Output directory for downloading songs (default: ./downloads)",
+    ),
+    version: Annotated[
+        Optional[bool], typer.Option("--version", callback=version_callback)
+    ] = None,
+):
+    logger.info(f"Starting download from {playlist_url} to {output_dir}")
+    try:
+        spotify_dl_main(playlist_url, output_dir)
+        logger.info("Download completed.")
+        typer.Exit(0)
+    except Exception as e:
+        logger.error(e)
+        logger.error(
+            "If you'd like to report this issue, "
+            "please include the message above when opening issues on GitHub. "
+            "For detailed instructions, see CONTRIBUTING.md"
+        )
+        typer.Exit(1)
 
 
 if __name__ == "__main__":
-    args = parse_arguments()
-
-    print(f"Starting download from {args.playlist_url} to {args.output_dir}")
-
-    try:
-        main(args.playlist_url, args.output_dir)
-
-        print("Download completed.")
-        sys.exit(0)
-
-    except KeyboardInterrupt:
-        print("Program terminated by user.")
-
-    except Exception:
-        print(traceback.format_exc())
-        print("If you'd like to report this issue, please include the message above when opening issues on GitHub. For detailed instructions, see CONTRIBUTING.md")  # noqa: E501
-        sys.exit(1)
+    app()

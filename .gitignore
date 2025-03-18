@@ -9,3 +9,5 @@ dist/
 
 downloads/
 ignore/
+
+uv.lock

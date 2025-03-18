@@ -1,6 +1,3 @@
-__version__ = "1.0.3"
-__author__ = "Cha @github.com/invzfnc"
-
 from typing import TypedDict
 from time import sleep
 from random import uniform
